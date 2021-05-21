@@ -8,8 +8,8 @@
  class SB_KERNEL{
     public static function generateSnapShot(){
         $time           = time();
-        $expiry         = time() + 1800;
-        $file_name      = "snapshot_".$time.".bin";
+        $expiry         = time() + 60*60;
+        $file_name      = "snapshot_".date("Y_m_d_H").".bin";
         $miner_release  = self::getMinerRelease();
         $chain_height   = self::getBockChainHeight();
 
@@ -53,6 +53,24 @@
         );
     }
 
+    public static function getSnapShot(){
+        
+        self::insertGeneratedSnapShots($chain_height, $miner_release);
+        return array(
+            "fileUri"           => SNAPSHOT_URI.$file_name,
+            "checkSum"          => array(
+                "md5"           => $check_sum_md5,
+                "sha1"          => $check_sum_sha1,
+                "sha256"        => $check_sum_sha256
+            ),
+            "minerRelease"      => $miner_release,
+            "blockHeight"       => $chain_height,
+            "timestamp"         => gmdate("Y-m-d\TH:i:s\Z", $time),
+            "expires"           => gmdate("Y-m-d\TH:i:s\Z", $expiry)
+            
+        );
+    }
+
     public static function getMinerRelease(){
         exec("sudo docker container inspect -f '{{.Config.Image}}' miner | awk -F: '{print $2}'", $output, $retval);
         return $output[0];
@@ -69,7 +87,7 @@
       
         foreach ($files as $file) {
           if (is_file(SNAPSHOT_DIR.$file)) {
-            if ($now - filemtime(SNAPSHOT_DIR.$file) >= 60 * 30) { // 30 minutes
+            if ($now - filemtime(SNAPSHOT_DIR.$file) >= 60 * 90) { // 60 minutes
                 unlink(SNAPSHOT_DIR.$file);
             }
           }
@@ -116,7 +134,7 @@
             
 
         } catch (PDOException $e) {
-           echo $e->getMessage();
+           error_log($e->getMessage());
         }
 
         return false;
