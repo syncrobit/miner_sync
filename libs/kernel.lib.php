@@ -14,9 +14,9 @@
         $chain_height   = self::getBockChainHeight();
 
         if(file_exists(SNAPSHOT_DIR.$file_name)){
-            $check_sum_md5 = hash_file("md5", SNAPSHOT_DIR.$file_name);
-            $check_sum_sha1 = hash_file("sha1", SNAPSHOT_DIR.$file_name);
-            $check_sum_sha256 = $sha256 = hash_file("sha256", SNAPSHOT_DIR.$file_name);
+            $check_sum_md5      = hash_file("md5", SNAPSHOT_DIR.$file_name);
+            $check_sum_sha1     = hash_file("sha1", SNAPSHOT_DIR.$file_name);
+            $check_sum_sha256   = $sha256 = hash_file("sha256", SNAPSHOT_DIR.$file_name);
             
         }else{
             exec("sudo docker exec miner miner snapshot take /var/data/".$file_name, $out, $e_status);
@@ -26,9 +26,9 @@
                     exec("sudo docker exec miner rm -rf /var/data/".$file_name, $r_out, $r_status);
                     exec("sudo chown www-data:www-data ".SNAPSHOT_DIR.$file_name, $c_out, $c_status);
 
-                    $check_sum_md5 = hash_file("md5", SNAPSHOT_DIR.$file_name);
-                    $check_sum_sha1 = hash_file("sha1", SNAPSHOT_DIR.$file_name);
-                    $check_sum_sha256 = hash_file("sha256", SNAPSHOT_DIR.$file_name);
+                    $check_sum_md5      = hash_file("md5", SNAPSHOT_DIR.$file_name);
+                    $check_sum_sha1     = hash_file("sha1", SNAPSHOT_DIR.$file_name);
+                    $check_sum_sha256   = hash_file("sha256", SNAPSHOT_DIR.$file_name);
                 }else{
                     return array("error" => "cannot move file");
                 }
