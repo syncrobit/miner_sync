@@ -8,15 +8,17 @@
  class SB_KERNEL{
     public static function generateSnapShot(){
         $time           = time();
-        $expiry         = time() + 60*60;
-        $file_name      = "snapshot_".date("Y_m_d_H").".bin";
+        $expiry         = time() + 60*15;
+        $file_no_ext    = "snapshot_".date("Y_m_d_H");
+        $file_name      = $file_no_ext.".bin";
+        $ark_name       = $file_no_ext."_ark.bin.xz";
         $miner_release  = self::getMinerRelease();
         $chain_height   = self::getBockChainHeight();
 
-        if(file_exists(SNAPSHOT_DIR.$file_name)){
+        if(file_exists(SNAPSHOT_DIR.$file_name) && $time - filemtime(SNAPSHOT_DIR.$file_name) < 900){
             $check_sum_md5      = hash_file("md5", SNAPSHOT_DIR.$file_name);
             $check_sum_sha1     = hash_file("sha1", SNAPSHOT_DIR.$file_name);
-            $check_sum_sha256   = $sha256 = hash_file("sha256", SNAPSHOT_DIR.$file_name);
+            $check_sum_sha256   = hash_file("sha256", SNAPSHOT_DIR.$file_name);
             
         }else{
             exec("sudo docker exec miner miner snapshot take /var/data/".$file_name, $out, $e_status);
@@ -25,6 +27,11 @@
                 if($m_status == 0){
                     exec("sudo docker exec miner rm -rf /var/data/".$file_name, $r_out, $r_status);
                     exec("sudo chown www-data:www-data ".SNAPSHOT_DIR.$file_name, $c_out, $c_status);
+
+                    //Make Ark
+                    //exec(SNAPSHOT_DIR."archive.sh ".$file_name." > /dev/null 2>/dev/null &");
+                    exec(SNAPSHOT_DIR."archive.sh ".$file_name);
+                    exec("sudo chown www-data:www-data ".SNAPSHOT_DIR.$ark_name, $c_out, $c_status);
 
                     $check_sum_md5      = hash_file("md5", SNAPSHOT_DIR.$file_name);
                     $check_sum_sha1     = hash_file("sha1", SNAPSHOT_DIR.$file_name);
@@ -40,6 +47,7 @@
         self::insertGeneratedSnapShots($chain_height, $miner_release);
         return array(
             "fileUri"           => SNAPSHOT_URI.$file_name,
+            "arkUri"            => SNAPSHOT_URI.$ark_name,
             "checkSum"          => array(
                 "md5"           => $check_sum_md5,
                 "sha1"          => $check_sum_sha1,
@@ -58,6 +66,7 @@
         self::insertGeneratedSnapShots($chain_height, $miner_release);
         return array(
             "fileUri"           => SNAPSHOT_URI.$file_name,
+            "arkUri"            => SNAPSHOT_URI.$ark_name.".xz",
             "checkSum"          => array(
                 "md5"           => $check_sum_md5,
                 "sha1"          => $check_sum_sha1,
@@ -86,7 +95,7 @@
         $now   = time();
       
         foreach ($files as $file) {
-          if (is_file(SNAPSHOT_DIR.$file)) {
+          if (is_file(SNAPSHOT_DIR.$file) && $file != "archive.sh") {
             if ($now - filemtime(SNAPSHOT_DIR.$file) >= 60 * 90) { // 60 minutes
                 unlink(SNAPSHOT_DIR.$file);
             }
@@ -139,6 +148,14 @@
 
         return false;
 
+    }
+
+    public static function makeArk($name, $file){
+        $fh = xzopen($name, 'w');
+        xzwrite($fh, $file);
+        xzclose($fh);
+
+        return true;
     }
 
  }
